@@ -5,8 +5,12 @@ from langchain_community.vectorstores import Chroma
 from langchain_community.llms import OpenAI
 from langchain.chains import RetrievalQA
 
-# Set OpenAI API key if not already set in environment
-os.environ["OPENAI_API_KEY"] = "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"
+# Fetch the OpenAI API key securely from environment variables
+openai_api_key = os.getenv("OPENAI_API_KEY")
+
+if not openai_api_key:
+    st.error("API key is not set. Please set the OPENAI_API_KEY environment variable.")
+    exit()
 
 # Initialize embedding model with LangChain's SentenceTransformerEmbeddings wrapper
 embedding_model = SentenceTransformerEmbeddings(model_name='paraphrase-MiniLM-L6-v2')
@@ -23,14 +27,18 @@ try:
         print(f"Vector database does not exist in {vector_db_directory}.")
         exit()
 except Exception as e:
-    print(f"Error occurred while loading vector database: {e}")
+    st.error(f"Error occurred while loading vector database: {e}")
     exit()
 
 # Initialize the retriever from the loaded vector database
 retriever = vectordb.as_retriever(search_type="similarity", search_kwargs={"k": 6})
 
 # Initialize OpenAI LLM with the API key
-llm = OpenAI(temperature=0, openai_api_key=os.getenv("OPENAI_API_KEY"))
+try:
+    llm = OpenAI(temperature=0, openai_api_key=openai_api_key,max_tokens=1500)
+except Exception as e:
+    st.error(f"Error initializing OpenAI LLM: {e}")
+    exit()
 
 # Create the RetrievalQA chain
 qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
@@ -49,9 +57,11 @@ query = st.text_input("Enter your question:")
 if st.button('Get Answer'):
     if query:
         # Generate a response using the RetrievalQA chain
-        response = qa_chain.run(query)
-        st.write("### Response:")
-        st.write(response)
+        try:
+            response = qa_chain.run(query)
+            st.write("### Response:")
+            st.write(response)
+        except Exception as e:
+            st.error(f"Error generating response: {e}")
     else:
         st.warning("Please enter a question.")
-
