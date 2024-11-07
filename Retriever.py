@@ -1,13 +1,12 @@
 import os
+import streamlit as st
 from langchain_community.embeddings import SentenceTransformerEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_community.llms import OpenAI
 from langchain.chains import RetrievalQA
-from langchain.schema import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 # Set OpenAI API key if not already set in environment
-#os.environ["OPENAI_API_KEY"] = ""  # Set this securely in the environment or directly
+os.environ["OPENAI_API_KEY"] = "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"
 
 # Initialize embedding model with LangChain's SentenceTransformerEmbeddings wrapper
 embedding_model = SentenceTransformerEmbeddings(model_name='paraphrase-MiniLM-L6-v2')
@@ -30,17 +29,29 @@ except Exception as e:
 # Initialize the retriever from the loaded vector database
 retriever = vectordb.as_retriever(search_type="similarity", search_kwargs={"k": 6})
 
-# Initialize OpenAI LLM with the API key (either passed directly or from environment)
+# Initialize OpenAI LLM with the API key
 llm = OpenAI(temperature=0, openai_api_key=os.getenv("OPENAI_API_KEY"))
 
 # Create the RetrievalQA chain
 qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
 
-# Example query to generate a response
-query = "How to be happy in life as mentioned by Bhagavat Gita?"
+# Streamlit UI
+st.title("Bhagavad Gita Question Answering")
 
-# Generate a response using the RetrievalQA chain
-response = qa_chain.run(query)
+st.write("""
+    Ask a question related to the Bhagavad Gita, and get an insightful response based on the teachings.
+""")
 
-# Print the response
-print("Response:", response)
+# Input for the user question
+query = st.text_input("Enter your question:")
+
+# Button to submit the question and get the answer
+if st.button('Get Answer'):
+    if query:
+        # Generate a response using the RetrievalQA chain
+        response = qa_chain.run(query)
+        st.write("### Response:")
+        st.write(response)
+    else:
+        st.warning("Please enter a question.")
+
