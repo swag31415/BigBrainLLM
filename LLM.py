@@ -1,4 +1,5 @@
 import os
+import fitz  # PyMuPDF for reading PDF
 from langchain.embeddings import SentenceTransformerEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.schema import Document
@@ -16,6 +17,7 @@ if not os.path.exists("transcripts"):
     print("The transcripts directory does not exist!")
     exit()
 
+# Read and process transcript text files
 print("Reading transcript files...")
 for filename in os.listdir("transcripts"):
     if filename.endswith(".txt"):
@@ -24,6 +26,27 @@ for filename in os.listdir("transcripts"):
             chunks = text_splitter.split_text(text)
             transcript_data.extend([Document(page_content=chunk) for chunk in chunks])
             print(f"Processed file: {filename}, Number of chunks: {len(chunks)}")
+
+# Read Bhagavad Gita PDF and convert it to chunks
+def process_pdf(pdf_path):
+    print(f"Processing PDF: {pdf_path}")
+    doc = fitz.open(pdf_path)  # Open the PDF file
+    pdf_text = ""
+    for page_num in range(doc.page_count):
+        page = doc.load_page(page_num)
+        pdf_text += page.get_text("text")  # Extract text from each page
+    
+    # Split the extracted text into chunks
+    chunks = text_splitter.split_text(pdf_text)
+    return [Document(page_content=chunk) for chunk in chunks]
+
+# Add Bhagavad Gita PDF to transcript data
+pdf_path = "book/bhagavad-gita.pdf"  # Path to the Bhagavad Gita PDF
+if os.path.exists(pdf_path):
+    print("Processing Bhagavad Gita PDF...")
+    gita_chunks = process_pdf(pdf_path)
+    transcript_data.extend(gita_chunks)
+    print(f"Processed Bhagavad Gita PDF, Number of chunks: {len(gita_chunks)}")
 
 # Function to split the documents into smaller batches
 def batch_documents(documents, batch_size=100):
@@ -67,10 +90,8 @@ except Exception as e:
 # Check if vectordb was successfully created before proceeding
 if vectordb:
     retriever = vectordb.as_retriever(search_type="similarity", search_kwargs={"k": 6})
-    query = "How to be happy in life as mentioned by Bhagavat Gita?"
+    query = "How to be happy in life as mentioned by Bhagavad Gita?"
     retrieved_docs = retriever.invoke(query)
     print(f"Number of documents retrieved for query '{query}': {len(retrieved_docs)}")
 else:
     print("Vector database was not created. Please check for errors and try again.")
-
-
