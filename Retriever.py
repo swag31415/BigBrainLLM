@@ -4,13 +4,25 @@ from langchain_community.embeddings import SentenceTransformerEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_community.llms import OpenAI
 from langchain.chains import RetrievalQA
+from dotenv import load_dotenv
+
+# Load environment variables from the .env file
+load_dotenv()
 
 # Fetch the OpenAI API key securely from environment variables
-openai_api_key = os.getenv("OPENAI_API_KEY")
+openai_api_key = os.getenv("OPEN_API_KEY")
 
-if not openai_api_key:
+# Check if the API key is loaded
+if openai_api_key:
+    print("API Key loaded successfully:", openai_api_key)
+else:
+    print("Failed to load API Key.")
     st.error("API key is not set. Please set the OPENAI_API_KEY environment variable.")
     exit()
+
+# if not openai_api_key:
+#     st.error("API key is not set. Please set the OPENAI_API_KEY environment variable.")
+#     exit()
 
 # Initialize embedding model with LangChain's SentenceTransformerEmbeddings wrapper
 embedding_model = SentenceTransformerEmbeddings(model_name='paraphrase-MiniLM-L6-v2')
