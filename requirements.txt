@@ -1,3 +1,9 @@
 bs4
 requests
 openai
+langchain
+langchain_community
+dotenv
+sentence-transformers
+chromadb
+streamlit
