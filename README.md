@@ -13,17 +13,18 @@ The purpose of this application is to build an open source prabupad personality 
 
 ## Installation
 
-Instructions on how to install and set up the project.
+Run the following
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/your-repo-name.git
+git clone https://github.com/Harshal12355/ISKCON-LLM.git
 
 # Navigate to the project directory
-cd your-repo-name
+cd ISKCON-LLM
 
 # Install dependencies
-npm install
+pip install -r ./requirements.txt
+# also ensure you have pytorch installed
 ```
 
 ## Usage
