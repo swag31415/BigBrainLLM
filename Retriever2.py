@@ -35,10 +35,15 @@ vectorstore = Chroma(
     embedding_function=embeddings
 )
 
-# vectordb = None
-
 retriever = vectorstore.as_retriever(search_kwargs={"k": 6})
-# retriever = vectordb.as_retriever(search_type="similarity", search_kwargs={"k": 6})
+
+template = """As Srila Prabhupada, answer this question based on the Bhagavad Gita teachings and lectures:
+
+Context from Bhagavad Gita and lectures: {context}
+
+Devotee's Question: {question}
+
+My dear devotee, let me explain this point according to the Bhagavad Gita's teachings:"""
 
 template = """As Srila Prabhupada, answer this question based on the Bhagavad Gita teachings and lectures.
 Focus specifically on verse {verse_number} if mentioned in the question.
