@@ -1,124 +1,132 @@
-import os
-import time
 import streamlit as st
-from langchain_community.llms import OpenAI
-from langchain.memory import ConversationBufferMemory
-from langchain.chains import ConversationChain
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain.prompts import ChatPromptTemplate, PromptTemplate
+from langgraph.graph import StateGraph, END
+from typing import TypedDict, Annotated
+from typing_extensions import Annotated
+from langchain.callbacks.base import BaseCallbackHandler
+from langchain_community.vectorstores import Chroma
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
+import os
+from langchain_community.embeddings import SentenceTransformerEmbeddings
 
-# Load environment variables from the .env file
+
 load_dotenv()
 
-# Fetch the OpenAI API key securely from environment variables
+# Set the OpenAI API key
 openai_api_key = os.getenv("OPEN_API_KEY")
 
-if not openai_api_key:
+# Check if the API key is loaded
+if openai_api_key:
+    print("API Key loaded successfully:", openai_api_key)
+else:
+    print("Failed to load API Key.")
     st.error("API key is not set. Please set the OPENAI_API_KEY environment variable.")
     exit()
 
-# Initialize OpenAI LLM with the API key
-llm = OpenAI(temperature=0, openai_api_key=openai_api_key, max_tokens=1500)
+# Initialize ChromaDB and retriever
+# embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+embeddings = SentenceTransformerEmbeddings(model_name='paraphrase-MiniLM-L6-v2')
 
-# Initialize memory to store conversation history, explicitly setting the memory key to 'history'
-memory = ConversationBufferMemory(memory_key="history", return_messages=True)
+vectorstore = Chroma(
+    persist_directory="chroma_vector_db",
+    embedding_function=embeddings
+)
 
-# Create the ConversationChain
-conversation = ConversationChain(llm=llm, memory=memory)
+# vectordb = None
 
-# Streamlit UI improvements
-st.set_page_config(page_title="Memory-enabled Chatbot", page_icon="🤖", layout="wide")
+retriever = vectorstore.as_retriever(search_kwargs={"k": 6})
+# retriever = vectordb.as_retriever(search_type="similarity", search_kwargs={"k": 6})
 
-# Custom CSS to enhance the UI
-st.markdown("""
-    <style>
-        .chat-container {
-            max-width: 800px;
-            margin: auto;
-            padding: 20px;
-            background-color: #f7f7f7;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .user-msg, .bot-msg {
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 10px;
-            max-width: 80%;
-        }
-        .user-msg {
-            background-color: #DCF8C6;
-            margin-left: auto;
-        }
-        .bot-msg {
-            background-color: #E5E5E5;
-        }
-        .stTextInput input {
-            border-radius: 15px;
-            padding: 10px;
-            font-size: 16px;
-        }
-        .stButton button {
-            border-radius: 15px;
-            background-color: #4CAF50;
-            color: white;
-            font-weight: bold;
-            padding: 10px;
-        }
-        .stButton button:hover {
-            background-color: #45a049;
-        }
-    </style>
-""", unsafe_allow_html=True)
+template = """As Srila Prabhupada, answer this question based on the Bhagavad Gita teachings and lectures.
+Focus specifically on verse {verse_number} if mentioned in the question.
 
-# Check if the messages history exists in session_state, and initialize it if not
-if 'messages' not in st.session_state:
+Context from Bhagavad Gita and lectures: {context}
+
+Devotee's Question: {question}
+
+My dear devotee, let me explain this point according to the Bhagavad Gita's teachings:"""
+
+rag_prompt = PromptTemplate(
+    template=template,
+    input_variables=["context", "question"]
+)
+
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
+
+# Define the state
+class State(TypedDict):
+    messages: Annotated[list, "The messages in the conversation"]
+    context: Annotated[str, "Retrieved context"]
+    question: Annotated[str, "User question"]
+
+# Create a Streamlit callback handler
+class StreamlitCallbackHandler(BaseCallbackHandler):
+    def __init__(self, container):
+        self.container = container
+        self.text = ""
+    
+    def on_llm_new_token(self, token: str, **kwargs) -> None:
+        self.text += token
+        self.container.markdown(self.text)
+
+# Set up the LLM
+llm = ChatOpenAI(temperature=0, streaming=True, openai_api_key=openai_api_key)
+
+# Create the graph
+graph = StateGraph(State)
+
+# Define the nodes
+def retrieve_context(state: State):
+    question = state["messages"][-1]["content"]
+    docs = retriever.get_relevant_documents(question)
+    context = format_docs(docs)
+    return {"messages": state["messages"], "context": context, "question": question}
+
+def generate_response(state: State):
+    response = llm.invoke(
+        rag_prompt.format(
+            context=state["context"],
+            question=state["question"]
+        )
+    )
+    return {"messages": state["messages"] + [response]}
+
+# Set up the graph
+graph.add_node("retriever", retrieve_context)
+graph.add_node("generator", generate_response)
+graph.set_entry_point("retriever")
+graph.add_edge("retriever", "generator")
+graph.add_edge("generator", END)
+
+# Compile the graph
+app = graph.compile()
+
+# Streamlit UI
+st.title("LangChain + LangGraph + Streamlit RAG Chatbot")
+
+if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Chat UI container
-with st.container():
-    st.title("Memory-enabled Chatbot 🤖")
-    st.write("""
-        Start a conversation, and I will remember what we talked about!
-    """)
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-    # Display the chat history in a scrollable container
-    for message in st.session_state.messages:
-        if "User:" in message:
-            st.markdown(f'<div class="user-msg">{message}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div class="bot-msg">{message}</div>', unsafe_allow_html=True)
+if prompt := st.chat_input("What is up?"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-    # Input box for the user message
-    query = st.text_input("Enter your message:", key="input_text", placeholder="Type something...")
-
-    # Define the function to handle message submission
-    def handle_message_submission():
-        query = st.session_state.input_text
-        if query:
-            # Display the user's message
-            st.session_state.messages.append(f"User: {query}")
-
-            # Simulate a slight delay to make it feel more conversational
-            with st.spinner("Thinking..."):
-                time.sleep(1)  # Add delay before response
-
-            # Get the response from the chatbot
-            response = conversation.predict(input=query)
-            st.session_state.messages.append(f"Bot: {response}")
-
-            # Display the bot's response
-            st.markdown(f'<div class="bot-msg">{response}</div>', unsafe_allow_html=True)
-
-            # Scroll to the bottom after each new message
-            st.rerun()
-
-        else:
-            st.warning("Please enter a message.")
-
-    # Button to submit the message and get the answer
-    if st.button('Send'):
-        handle_message_submission()
-
-    # # Handle Enter key press by triggering the same function
-    # if query:
-    #     handle_message_submission()
+    with st.chat_message("assistant"):
+        stream_container = st.empty()
+        with stream_container:
+            callback = StreamlitCallbackHandler(stream_container)
+            response = app.invoke(
+                {"messages": st.session_state.messages},
+                {"callbacks": [callback]}
+            )
+        assistant_message = response["messages"][-1]
+        st.session_state.messages.append({"role": "assistant", "content": assistant_message.content})
