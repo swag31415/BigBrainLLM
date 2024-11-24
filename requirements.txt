@@ -8,4 +8,3 @@ sentence-transformers
 chromadb
 streamlit
 langgraph 
-tavily-python
