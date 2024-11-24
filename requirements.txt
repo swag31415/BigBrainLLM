@@ -7,4 +7,5 @@ python-dotenv
 sentence-transformers
 chromadb
 streamlit
-langgraph 
+langgraph
+langchain_openai
