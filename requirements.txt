@@ -7,12 +7,6 @@ python-dotenv
 sentence-transformers
 chromadb
 streamlit
-<<<<<<< HEAD
 langgraph 
 nltk
 rouge_score
-=======
-langgraph
-langchain_openai
-pysqlite3-binary
->>>>>>> e900e0c69dc83e60f3cfcaba1194224e45d3b165
