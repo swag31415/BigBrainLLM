@@ -1,3 +1,5 @@
+# import ollama 
+from langchain_community.llms import Ollama
 import streamlit as st
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
@@ -89,7 +91,7 @@ class StreamlitCallbackHandler(BaseCallbackHandler):
         self.container.markdown(self.text)
 
 # Set up the LLM
-llm = ChatOpenAI(temperature=0, streaming=True, openai_api_key=openai_api_key, max_tokens=1500)
+llm =  Ollama(model="mistral")
 
 # Create the graph
 graph = StateGraph(State)
@@ -137,7 +139,7 @@ def generate_response(state: State):
         )
     )
 
-    updated_messages = state["messages"] + [{"role": "assistant", "content": response.content}]
+    updated_messages = state["messages"] + [{"role": "assistant", "content": response}]
     
     return {
         "messages": updated_messages,

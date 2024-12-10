@@ -61,6 +61,7 @@ try:
         vectordb = Chroma(persist_directory=vector_db_directory, embedding_function=embedding_model)
     else:
         print(f"Total number of documents to process: {len(transcript_data)}")
+        
         # Process all documents in batches
         batched_data = batch_documents(transcript_data, batch_size=100)
 
