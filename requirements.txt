@@ -10,3 +10,7 @@ streamlit
 langgraph 
 nltk
 rouge_score
+fastapi 
+uvicorn
+typing-extensions
+langchain_openai
