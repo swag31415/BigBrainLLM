@@ -1,7 +1,7 @@
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, Annotated
 
-from templates import detailed_template, concise_template
+from src.templates import detailed_template, concise_template
 
 class State(TypedDict):
     messages: Annotated[list, "The messages in the conversation"]

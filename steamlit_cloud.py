@@ -4,5 +4,7 @@ import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 # --end-- hopefully
 
-# runs RAG_Retrieval.py because of how python works
-import src.app as app
+from main import main
+
+if __name__ == "__main__":
+    main()

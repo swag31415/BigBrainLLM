@@ -1,6 +1,6 @@
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import SentenceTransformerEmbeddings
-from ui import init_api_keys
+from src.ui import init_api_keys
 from langchain_openai import ChatOpenAI
 
 def init_retriever():
