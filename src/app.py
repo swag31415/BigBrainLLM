@@ -2,8 +2,6 @@ from langgraph.graph import StateGraph, END
 from typing import TypedDict, Annotated
 
 from templates import detailed_template, concise_template
-from model import init_retriever, init_llm
-from ui import start_ui
 
 class State(TypedDict):
     messages: Annotated[list, "The messages in the conversation"]
@@ -20,10 +18,7 @@ def classify_question(question: str) -> str:
 def format_docs(docs):
     return "\n\n".join(f"Chapter {doc.metadata.get('chapter', 'N/A')}, Verse {doc.metadata.get('verse', 'N/A')}: {doc.page_content}" for doc in docs)
 
-def main():
-    # Initialize the retriever and LLM
-    retriever = init_retriever()
-    llm = init_llm()
+def app(retriever, llm):
     # Define the nodes
     def retrieve_context(state: State) -> State:
         question = state["messages"][-1]["content"]
@@ -62,9 +57,4 @@ def main():
     graph.add_edge("retriever", "generator")
     graph.add_edge("generator", END)
     # Compile the graph
-    app = graph.compile()
-    # Run the ui
-    start_ui(app)
-
-if __name__ == "__main__":
-    main()
+    return graph.compile()
