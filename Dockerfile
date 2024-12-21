@@ -10,4 +10,4 @@ COPY . .
 
 EXPOSE 8501
 
-CMD ["streamlit", "run", "models/interactable/chatgpt.py"]
+CMD ["streamlit", "run", "RAG_Retrieval.py"]
