@@ -2,12 +2,17 @@ FROM python:3.10
 
 WORKDIR /app
 
-RUN pip install --upgrade pip
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY .env .
+COPY *.py .
+COPY src src
+COPY chroma_vector_db chroma_vector_db
+COPY book book
 
-COPY . .
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 EXPOSE 8501
 
-CMD ["streamlit", "run", "models/interactable/chatgpt.py"]
+# CMD ["streamlit", "run", "main.py"]
+CMD ["uvicorn", "api_app:api_app", "--host", "0.0.0.0", "--port", "8501"]
