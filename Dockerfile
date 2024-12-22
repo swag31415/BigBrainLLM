@@ -2,11 +2,15 @@ FROM python:3.10
 
 WORKDIR /app
 
-RUN pip install --upgrade pip
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+COPY .env .
+COPY *.py .
+COPY src src
+COPY chroma_vector_db chroma_vector_db
+COPY book book
 
-COPY . .
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 EXPOSE 8501
 
