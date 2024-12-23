@@ -14,3 +14,4 @@ fastapi
 uvicorn
 typing-extensions
 langchain_openai
+pysqlite3-binary
